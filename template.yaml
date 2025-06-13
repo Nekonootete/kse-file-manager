@@ -1,0 +1,56 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  kse-file-manager
+
+  Sample SAM Template for kse-file-manager
+
+Globals:
+  Function:
+    Timeout: 3
+    MemorySize: 512
+
+Parameters:
+  SlackSigningSecret:
+    Type: String
+    Description: Slack Signing Secret
+  SlackApiToken:
+    Type: String
+    Description: Slack Api Token
+  BucketName:
+    Type: String
+    Description: S3 Bucket Name
+
+Resources:
+  FileList:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: file_manager/file_list/
+      Handler: app.lambda_handler
+      Runtime: ruby3.4
+      Architectures:
+        - x86_64
+      Environment:
+        Variables:
+          BUCKET_NAME: !Ref FileBucket
+          SLACK_API_TOKEN: !Ref SlackApiToken
+          SLACK_SIGNING_SECRET: !Ref SlackSigningSecret
+      Policies:
+        - S3ReadPolicy:
+            BucketName: !Ref BucketName
+      Events:
+        FileList:
+          Type: Api
+          Properties:
+            Path: file_manager/file_list
+            Method: post
+
+  FileBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Ref BucketName
+
+Outputs:
+  FileManageApi:
+    Description: 'API Gateway endpoint URL for Prod stage for Hello World function'
+    Value: !Sub 'https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/file_manager/'
