@@ -42,7 +42,7 @@ Resources:
         FileList:
           Type: Api
           Properties:
-            Path: file_manager/file_list
+            Path: /file_manager/file_list
             Method: post
 
   FileBucket:
