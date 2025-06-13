@@ -20,7 +20,6 @@ def verify_request(event)
   slack_request.verify!
 end
 
-
 Slack.configure do |config|
   config.token = ENV.fetch('SLACK_API_TOKEN', nil)
 end
@@ -42,7 +41,7 @@ def post_to_slack(channel, array)
 
   client.chat_postMessage(
     channel:,
-    array:
+    text: array.join("\n")
   )
 end
 
