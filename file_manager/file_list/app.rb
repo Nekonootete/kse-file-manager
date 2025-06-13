@@ -49,10 +49,13 @@ def lambda_handler(event:, context:)
   logger.debug(event)
   logger.debug(context)
 
-  verify_request(event)
-
   params = URI.decode_www_form(event['body']).to_h
-  logger.debug(params)
+  #logger.debug(params)
+  puts params
+  puts event
+  puts params['user_id']
+
+  verify_request(event)
 
   #event['Records']&.each do |record|
     #list = file_list_s3(record['s3'])
