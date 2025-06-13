@@ -16,6 +16,11 @@ lint = true
 capabilities = "CAPABILITY_IAM"
 confirm_changeset = true
 resolve_s3 = true
+s3_prefix = "kse-file-manager"
+region = "ap-northeast-1"
+profile = "default"
+parameter_overrides = "SlackSigningSecret=\"5137faece93c075f8d733ed9ce5159be\" SlackApiToken=\"xoxb-9015532818849-9029934412247-O6Ztc0wprcSMKKiWaeqwEl1R\" BucketName=\"kse-file\""
+image_repositories = []
 
 [default.package.parameters]
 resolve_s3 = true
