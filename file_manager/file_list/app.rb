@@ -51,11 +51,13 @@ def lambda_handler(event:, context:)
 
   verify_request(event)
 
-  body = JSON.parse(event['body'])
-  event['Records']&.each do |record|
-    list = file_list_s3(record['s3'])
-    post_to_slack(body['event'][''channel], list)
-  end
+  params = URI.decode_www_form(event['body']).to_h
+  logger.debug(params)
+
+  #event['Records']&.each do |record|
+    #list = file_list_s3(record['s3'])
+    #post_to_slack(body['event'][''channel], list)
+  #end
   
   { statusCode: 200, body: nil}
 rescue StandardError => e
