@@ -3,6 +3,7 @@ require 'logger'
 require 'rack'
 require 'aws-sdk-s3'
 require 'slack-ruby-client'
+require 'uri'
 
 def logger
   @logger ||= Logger.new($stdout, level: Logger::Severity::INFO)
