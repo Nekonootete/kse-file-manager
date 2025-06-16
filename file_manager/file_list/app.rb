@@ -24,12 +24,11 @@ Slack.configure do |config|
   config.token = ENV.fetch('SLACK_API_TOKEN', nil)
 end
 
-def file_list_s3(s3_event)
-  bucket = s3_event.dig('bucket', 'name')
+def file_list_s3()
   client = Aws::S3::Client.new
 
   resp = client.list_objects_v2(
-    bucket: ENV['BUCKET_NAME'],
+    bucket: ENV.fetch('BUCKET_NAME', nil),
     max_keys: 1000
   )
 
@@ -41,7 +40,7 @@ def post_to_slack(channel, array)
 
   client.chat_postMessage(
     channel:,
-    text: array.join("\n")
+    text: array
   )
 end
 
@@ -49,20 +48,19 @@ def lambda_handler(event:, context:)
   logger.debug(event)
   logger.debug(context)
 
-  params = URI.decode_www_form(event['body']).to_h
-  #logger.debug(params)
-  puts params
-  puts event
-  puts params['user_id']
-
   verify_request(event)
 
-  #event['Records']&.each do |record|
-    #list = file_list_s3(record['s3'])
-    #post_to_slack(body['event'][''channel], list)
-  #end
+  params = URI.decode_www_form(event['body']).to_h
+  #logger.debug(params)
+  #puts params
+  #puts event
+  #puts params['channel_name']
+  list = file_list_s3()
+  puts list #ok!
+  channel = params['channel_name']
+  post_to_slack(channel, list)
   
-  { statusCode: 200, body: nil}
+  { statusCode: 200, body: nil }
 rescue StandardError => e
   logger.fatal(e.full_message)
   { statusCode: 200, body: e.message }
