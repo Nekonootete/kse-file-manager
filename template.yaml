@@ -22,29 +22,63 @@ Parameters:
     Description: S3 Bucket Name
 
 Resources:
-  FileList:
+  FileListEnqueue:
     Type: AWS::Serverless::Function
     Properties:
-      CodeUri: file_manager/file_list/
+      CodeUri: file_manager/file_list/enqueue/
       Handler: app.lambda_handler
       Runtime: ruby3.4
+      Timeout: 3
+      Policies:
+        - SQSSendMessagePolicy:
+            QueueName: !Ref MessageQueue
+      Architectures:
+        - x86_64
+      Environment:
+        Variables:
+          SLACK_SIGNING_SECRET: !Ref SlackSigningSecret
+          QUEUE_NAME: !Ref MessageQueue
+      Events:
+        FileList:
+          Type: Api
+          Properties:
+            Path: /file_manager/file_list/enqueue
+            Method: post
+  FileListEnqueue:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: file_manager/file_list/dequeue/
+      Handler: app.lambda_handler
+      Runtime: ruby3.2
+      Timeout: 10
+      Policies:
+        - S3ReadPolicy:
+            BucketName: !Ref FileBucket
       Architectures:
         - x86_64
       Environment:
         Variables:
           BUCKET_NAME: !Ref FileBucket
           SLACK_API_TOKEN: !Ref SlackApiToken
-          SLACK_SIGNING_SECRET: !Ref SlackSigningSecret
-      Policies:
-        - S3ReadPolicy:
-            BucketName: !Ref BucketName
       Events:
-        FileList:
-          Type: Api
+        Dequeue:
+          Type: SQS
           Properties:
-            Path: /file_manager/file_list
-            Method: post
-
+            Queue: !GetAtt MessageQueue.Arn
+  MessageQueue:
+    Type: AWS::SQS::Queue
+  MessageQueuePolicy: 
+    Type: AWS::SQS::QueuePolicy
+    Properties: 
+      PolicyDocument: 
+        Id: !Ref MessageQueue
+        Statement: 
+          - Effect: Allow
+            Principal: "*"
+            Action: "SQS:*"
+            Resource: !GetAtt MessageQueue.Arn
+      Queues:
+        - !Ref MessageQueue
   FileBucket:
     Type: AWS::S3::Bucket
     Properties:
