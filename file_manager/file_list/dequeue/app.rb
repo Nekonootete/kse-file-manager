@@ -5,23 +5,12 @@ require 'aws-sdk-s3'
 require 'slack-ruby-client'
 require 'uri'
 
-def logger
-  @logger ||= Logger.new($stdout, level: Logger::Severity::INFO)
-end
-
-def verify_request(event)
-  env = {
-    'rack.input' => StringIO.new(event['body']),
-    'HTTP_X_SLACK_REQUEST_TIMESTAMP' => event.dig('headers', 'X-Slack-Request-Timestamp'),
-    'HTTP_X_SLACK_SIGNATURE' => event.dig('headers', 'X-Slack-Signature')
-  }
-  req = Rack::Request.new(env)
-  slack_request = Slack::Events::Request.new(req)
-  slack_request.verify!
-end
-
 Slack.configure do |config|
   config.token = ENV.fetch('SLACK_API_TOKEN', nil)
+end
+
+def logger
+  @logger ||= Logger.new($stdout, level: Logger::Severity::INFO)
 end
 
 def file_list_s3()

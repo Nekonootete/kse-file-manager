@@ -1,7 +1,7 @@
 require 'json'
 require 'logger'
 require 'rack'
-require 'aws-sdk-s3'
+require 'aws-sdk-sqs'
 require 'slack-ruby-client'
 require 'uri'
 
@@ -20,27 +20,14 @@ def verify_request(event)
   slack_request.verify!
 end
 
-Slack.configure do |config|
-  config.token = ENV.fetch('SLACK_API_TOKEN', nil)
-end
+def send_to_queue(channel)
+  client = Aws::SQS::Client.new
 
-def file_list_s3()
-  client = Aws::S3::Client.new
-
-  resp = client.list_objects_v2(
-    bucket: ENV.fetch('BUCKET_NAME', nil),
-    max_keys: 1000
-  )
-
-  keys = resp.contents.map(&:key)
-end
-
-def post_to_slack(channel, array)
-  client = Slack::Web::Client.new
-
-  client.chat_postMessage(
-    channel:,
-    text: array
+  client.send_message(
+    queue_url: ENV.fetch('QUEUE_NAME', nil),
+    message_body: {
+       channel:
+    }.to_json
   )
 end
 
@@ -51,14 +38,9 @@ def lambda_handler(event:, context:)
   verify_request(event)
 
   params = URI.decode_www_form(event['body']).to_h
-  #logger.debug(params)
   #puts params
-  #puts event
   #puts params['channel_name']
-  list = file_list_s3()
-  puts list #ok!
-  channel = params['channel_name']
-  post_to_slack(channel, list)
+  send_to_queue(params['channel_name'])
   
   { statusCode: 200, body: nil }
 rescue StandardError => e
