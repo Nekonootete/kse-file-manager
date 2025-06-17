@@ -31,13 +31,13 @@ Resources:
       Timeout: 3
       Policies:
         - SQSSendMessagePolicy:
-            QueueName: !Ref MessageQueue
+            QueueName: !Ref FileListQueue
       Architectures:
         - x86_64
       Environment:
         Variables:
           SLACK_SIGNING_SECRET: !Ref SlackSigningSecret
-          QUEUE_NAME: !Ref MessageQueue
+          QUEUE_NAME: !Ref FileListQueue
       Events:
         FileList:
           Type: Api
@@ -64,21 +64,102 @@ Resources:
         Dequeue:
           Type: SQS
           Properties:
-            Queue: !GetAtt MessageQueue.Arn
-  MessageQueue:
+            Queue: !GetAtt FileListQueue.Arn
+
+  FileUploadEnqueue:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: file_manager/file_upload/enqueue/
+      Handler: app.lambda_handler
+      Runtime: ruby3.4
+      Timeout: 3
+      Policies:
+        - SQSSendMessagePolicy:
+            QueueName: !Ref FileUploadQueue
+      Architectures:
+        - x86_64
+      Environment:
+        Variables:
+          SLACK_SIGNING_SECRET: !Ref SlackSigningSecret
+          QUEUE_NAME: !Ref FileUploadQueue
+      Events:
+        FileList:
+          Type: Api
+          Properties:
+            Path: /file_manager/file_upload
+            Method: post
+  FileUploadDequeue:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: file_manager/file_upload/dequeue/
+      Handler: app.lambda_handler
+      Runtime: ruby3.4
+      Timeout: 10
+      Policies:
+        - S3FullAccessPolicy:
+            BucketName: !Ref FileBucket
+      Architectures:
+        - x86_64
+      Environment:
+        Variables:
+          BUCKET_NAME: !Ref FileBucket
+          SLACK_API_TOKEN: !Ref SlackApiToken
+      Events:
+        Dequeue:
+          Type: SQS
+          Properties:
+            Queue: !GetAtt FileUploadQueue.Arn
+  FileUploadReply:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: file_manager/file_upload/reply/
+      Handler: app.lambda_handler
+      Runtime: ruby3.4
+      Timeout: 10
+      Policies:
+        - S3FullAccessPolicy:
+            BucketName: !Ref BucketName
+      Architectures:
+        - x86_64
+      Environment:
+        Variables:
+          SLACK_API_TOKEN: !Ref SlackApiToken
+      Events:
+        S3:
+          Type: S3
+          Properties:
+            Bucket: !Ref FileBucket
+            Events: s3:ObjectCreated:*
+
+  FileListQueue:
     Type: AWS::SQS::Queue
-  MessageQueuePolicy:
+  FileListQueuePolicy:
     Type: AWS::SQS::QueuePolicy
     Properties:
       PolicyDocument:
-        Id: !Ref MessageQueue
+        Id: !Ref FileListQueue
         Statement:
           - Effect: Allow
             Principal: '*'
             Action: 'SQS:*'
-            Resource: !GetAtt MessageQueue.Arn
+            Resource: !GetAtt FileListQueue.Arn
       Queues:
-        - !Ref MessageQueue
+        - !Ref FileListQueue
+  FileUploadQueue:
+    Type: AWS::SQS::Queue
+  FileUploadQueuePolicy:
+    Type: AWS::SQS::QueuePolicy
+    Properties:
+      PolicyDocument:
+        Id: !Ref FileUploadQueue
+        Statement:
+          - Effect: Allow
+            Principal: '*'
+            Action: 'SQS:*'
+            Resource: !GetAtt FileUploadQueue.Arn
+      Queues:
+        - !Ref FileUploadQueue
+
   FileBucket:
     Type: AWS::S3::Bucket
     Properties:

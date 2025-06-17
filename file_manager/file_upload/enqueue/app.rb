@@ -1,10 +1,10 @@
 require 'json'
 require 'logger'
-require 'rack'
-require 'aws-sdk-sqs'
 require 'slack-ruby-client'
+require 'rack'
 require 'uri'
-
+require 'aws-sdk-sqs'
+  
 def logger
   @logger ||= Logger.new($stdout, level: Logger::Severity::INFO)
 end
@@ -20,23 +20,40 @@ def verify_request(event)
   slack_request.verify!
 end
 
-def send_to_queue(channel)
-  client = Aws::SQS::Client.new
-
+def send_file_to_queue(client, file, channel)
   client.send_message(
     queue_url: ENV.fetch('QUEUE_NAME', nil),
-    message_body: {channel:}.to_json
+    message_body: {
+      file: {
+        id: file['id'], name: file['name'], timestamp: file['timestamp'],
+        url_private_download: file['url_private_download']
+      }, channel:
+    }.to_json
   )
+end
+
+def send_files_to_queue(body)
+  client = Aws::SQS::Client.new
+
+  logger.info(body)
+
+  body.dig('event', 'files')&.each do |file|
+    next if file['filetype'] != 'xlsx'
+
+    send_file_to_queue(client, file, body.dig('event', 'channel'))
+  end
 end
 
 def lambda_handler(event:, context:)
   logger.debug(event)
   logger.debug(context)
-
+  
   verify_request(event)
 
-  params = URI.decode_www_form(event['body']).to_h
-  send_to_queue(params['channel_name'])
+  body = JSON.parse(event['body'])
+  return { statusCode: 200, body: { challenge: body['challenge'] }.to_json } if body['challenge']
+
+  send_files_to_queue(body)
   
   { statusCode: 200, body: nil }
 rescue StandardError => e
