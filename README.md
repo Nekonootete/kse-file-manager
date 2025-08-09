@@ -19,6 +19,8 @@ Slack から S3 を操作する AWS サーバーレスアプリケーション
 
 <img src="https://github.com/user-attachments/assets/ca6ba7ab-797f-40e8-9fca-ab73eb071064">
 
+<br>
+
 ## 参考文献
 
 AWS と Ruby ではじめるサーバーレス入門 | (https://techbookfest.org/product/srni2eQTAKXY59aVTFRSag?productVariantID=8Pky5gQ4zgcpAhhVC0cVhY)
